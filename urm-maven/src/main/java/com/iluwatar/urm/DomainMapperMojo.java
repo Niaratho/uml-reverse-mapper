@@ -78,7 +78,7 @@ public class DomainMapperMojo extends AbstractMojo {
         Reflections.log = null;
       }
 
-      if (!Files.exists(path)) {
+      //if (!Files.exists(path)) {
         List<URL> projectClasspathList = getClasspathUrls();
         DomainMapper mapper = DomainMapper.create(selectedPresenter, packages, ignores,
             new URLClassLoader(projectClasspathList.toArray(new URL[projectClasspathList.size()])));
@@ -88,9 +88,9 @@ public class DomainMapperMojo extends AbstractMojo {
         getLog().info(fileName + " successfully written to: \""
             + path
             + "\"!");
-      } else {
-        getLog().info(fileName + " already exists, file was not overwritten!");
-      }
+      //} else {
+      //  getLog().info(fileName + " already exists, file was not overwritten!");
+      //}
     } catch (ClassNotFoundException | DependencyResolutionRequiredException | IOException e) {
       throw new MojoExecutionException(e.getMessage(), e);
     }

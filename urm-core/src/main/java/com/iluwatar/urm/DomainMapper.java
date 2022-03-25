@@ -50,6 +50,7 @@ public class DomainMapper {
                                     List<String> ignores, URLClassLoader classLoader)
       throws ClassNotFoundException {
     List<Class<?>> allClasses = DomainClassFinder.findClasses(packages, ignores, classLoader);
+    allClasses.forEach(System.out::println);
     return new DomainMapper(presenter, allClasses);
   }
 

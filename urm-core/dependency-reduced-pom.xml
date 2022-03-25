@@ -26,6 +26,7 @@
             <sourceDirectory>src/test/java</sourceDirectory>
             <sourceDirectory>src/main/java</sourceDirectory>
           </sourceDirectories>
+          <skip>true</skip>
         </configuration>
       </plugin>
       <plugin>

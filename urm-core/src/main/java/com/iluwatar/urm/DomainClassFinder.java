@@ -1,7 +1,9 @@
 package com.iluwatar.urm;
 
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -41,15 +43,22 @@ public class DomainClassFinder {
       }
 
     }
-    return packages.stream()
+
+    System.out.println("packages = " + packages);
+    System.out.println("ignores = " + ignores);
+    System.out.println("classLoader = " + Arrays.toString(classLoader.getDefinedPackages()));
+    List<Class<?>> classList = packages.stream()
         .map(packageName -> getClasses(classLoader, packageName))
-        .flatMap(Collection::stream)
+        .flatMap(Collection::stream).peek(System.out::println)
         .filter(DomainClassFinder::isNotPackageInfo)
         .filter(DomainClassFinder::isNotAnonymousClass)
-        .filter((Class<?> clazz) -> !ignores.contains(clazz.getName())
-            && !ignores.contains(clazz.getSimpleName()))
+        .filter((Class<?> clazz) -> ignores.stream()
+            .noneMatch(ignore -> clazz.getName().matches(ignore) || clazz.getSimpleName().matches(ignore)))
         .sorted(Comparator.comparing(Class::getName))
         .collect(Collectors.toList());
+
+    System.out.println("classList = " + classList);
+    return classList;
   }
 
   private static boolean isNotPackageInfo(Class<?> clazz) {
@@ -61,7 +70,28 @@ public class DomainClassFinder {
   }
 
   private static Set<Class<?>> getClasses(URLClassLoader classLoader, String packageName) {
+    List<ClassLoader> classLoadersList = new LinkedList<>();
+    classLoadersList.add(ClasspathHelper.contextClassLoader());
+    classLoadersList.add(ClasspathHelper.staticClassLoader());
+    if (classLoader != null) {
+      classLoadersList.add(classLoader);
+    }
+    classLoaders = classLoadersList.toArray(new ClassLoader[0]);
     FilterBuilder filter = new FilterBuilder().include(FilterBuilder.prefix(packageName));
+    if (!isAllowFindingInternalClasses()) {
+      filter.exclude(FilterBuilder.prefix(URM_PACKAGE));
+    }
+    Reflections reflections = new Reflections(new ConfigurationBuilder()
+        .setScanners(new SubTypesScanner(false), new ResourcesScanner())
+        .setUrls(ClasspathHelper.forClassLoader(classLoaders))
+        .filterInputsBy(filter)
+        .addClassLoaders(classLoadersList));
+    SetView<Class<?>> classes = Sets.union(reflections.getSubTypesOf(Object.class),
+        reflections.getSubTypesOf(Enum.class));
+    classes.forEach(System.out::println);
+    return classes;
+    //neu auskommentiert
+    /*FilterBuilder filter = new FilterBuilder().include(FilterBuilder.prefix(packageName));
     if (!isAllowFindingInternalClasses()) {
       filter.exclude(FilterBuilder.prefix(URM_PACKAGE));
     }
@@ -70,7 +100,7 @@ public class DomainClassFinder {
         .setUrls(ClasspathHelper.forPackage(packageName, classLoaders))
         .filterInputsBy(filter));
     return Sets.union(reflections.getSubTypesOf(Object.class),
-        reflections.getSubTypesOf(Enum.class));
+        reflections.getSubTypesOf(Enum.class));*/
   }
 
   public static boolean isAllowFindingInternalClasses() {
