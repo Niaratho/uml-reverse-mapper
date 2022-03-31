@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -88,6 +89,14 @@ public class DomainClassFinder {
         .addClassLoaders(classLoadersList));
     SetView<Class<?>> classes = Sets.union(reflections.getSubTypesOf(Object.class),
         reflections.getSubTypesOf(Enum.class));
+
+    List<String> listOfBuilders=classes.stream()
+        .filter(c-> c.getName().endsWith("Builder"))
+        .map(Class::getName)
+        .collect(Collectors.toList());
+    classes=  Sets.union(Sets.filter(classes,c->!listOfBuilders.contains(c.getName()+"Builder")),Sets.filter(classes,c->false));
+
+
     classes.forEach(System.out::println);
     return classes;
     //neu auskommentiert
