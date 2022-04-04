@@ -16,6 +16,13 @@ import java.util.stream.Collectors;
 public class MermaidPresenter implements Presenter {
   public static final String FILE_PREAMBLE = "classDiagram";
 
+  private boolean skipMethods = false;
+
+  public MermaidPresenter(boolean skipMethods) {
+	this.skipMethods = skipMethods;
+  }
+ 
+  
   private String describePackages(List<DomainClass> domainClasss) {
     return domainClasss.stream()
         .collect(groupingBy(DomainClass::getPackageName))
@@ -82,12 +89,19 @@ public class MermaidPresenter implements Presenter {
   }
 
   private String describeDomainClassMethods(DomainClass domainClass) {
-    String description = domainClass.getMethods().stream()
+    
+	  
+	 String description = "";
+	 
+	 if (!skipMethods) {
+		 description = domainClass.getMethods().stream()
         .map(m -> m.getVisibility() + " "
             + m.getUmlName()
             + (m.isStatic() ? "$ " : "")
             + (m.isAbstract() ? "* " : ""))
         .collect(Collectors.joining("\n    "));
+	 }
+	 
     return !description.equals("") ? "\n    " + description : "";
   }
 

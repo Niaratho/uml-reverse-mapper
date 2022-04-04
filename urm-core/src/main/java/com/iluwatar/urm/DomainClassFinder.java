@@ -87,14 +87,15 @@ public class DomainClassFinder {
         .setUrls(ClasspathHelper.forClassLoader(classLoaders))
         .filterInputsBy(filter)
         .addClassLoaders(classLoadersList));
+    
     SetView<Class<?>> classes = Sets.union(reflections.getSubTypesOf(Object.class),
-        reflections.getSubTypesOf(Enum.class));
+        reflections.getSubTypesOf(Enum.class));	
 
     List<String> listOfBuilders=classes.stream()
-        .filter(c-> c.getName().endsWith("Builder"))
-        .map(Class::getName)
+        .filter(c-> c.getSimpleName().endsWith("Builder"))
+        .map(Class::getSimpleName)
         .collect(Collectors.toList());
-    classes=  Sets.union(Sets.filter(classes,c->!listOfBuilders.contains(c.getName()+"Builder")),Sets.filter(classes,c->false));
+    classes=  Sets.union(Sets.filter(classes,c->!listOfBuilders.contains(String.format("%sBuilder", c.getSimpleName()))),Sets.filter(classes,c->false));
 
 
     classes.forEach(System.out::println);

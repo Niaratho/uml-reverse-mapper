@@ -1,5 +1,6 @@
 package com.iluwatar.urm.scanners;
 
+import java.lang.reflect.Modifier;
 import java.util.List;
 
 class AbstractScanner {
@@ -12,6 +13,11 @@ class AbstractScanner {
   boolean isDomainClass(final Class<?> clazz) {
     return classes.contains(clazz);
   }
+  
+  boolean isStaticBuilderDomainClass(final Class<?> clazz) {
+	return Modifier.isStatic(clazz.getModifiers()) && clazz.getSimpleName().endsWith("Builder");
+  }
+  
 
   boolean isDomainClass(final String name) {
     for (Class<?> clazz : classes) {

@@ -24,8 +24,13 @@ public class PlantUmlPresenter implements Presenter {
   public static final String FILE_PREAMBLE = "@startuml";
   public static final String FILE_POSTAMBLE = "@enduml";
   private transient List<DomainClass> domainClasses;
+  private boolean skipMethods = false; 
+  
+  public PlantUmlPresenter(boolean skipMethods) {
+	this.skipMethods = skipMethods;
+  }
 
-  private String describeInheritance(List<Edge> edges) {
+private String describeInheritance(List<Edge> edges) {
     return edges.stream()
         .filter(e -> e.type == EdgeType.EXTENDS)
         .map(this::describeInheritance)
@@ -114,10 +119,16 @@ public class PlantUmlPresenter implements Presenter {
   }
 
   private String describeDomainClassMethods(DomainClass domainClass) {
-    String description = domainClass.getMethods().stream()
+    
+	String description = "";
+	
+	if (!skipMethods) {
+	 description = domainClass.getMethods().stream()
         .map(m -> m.getVisibility() + " " + m.getUmlName()
             + (m.isStatic() ? " {static}" : "") + (m.isAbstract() ? " {abstract}" : ""))
         .collect(Collectors.joining("\n    "));
+	}
+	
     return !description.equals("") ? "\n    " + description : "";
   }
 

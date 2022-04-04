@@ -13,12 +13,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GraphvizPresenter implements Presenter {
 
+	
+	
   public static final String DOMAIN_DECLARATION = "digraph domain {\n";
   public static final String DEFAULTS = "  edge [ fontsize = 11 ];\n  node [ shape=record ];";
   private static final String INHERITANCE_STYLE = "arrowhead=empty color=slategray";
   private final AtomicInteger count = new AtomicInteger();
+  
+  private boolean skipMethods = false;
 
-  private Object getEdgeDescription(Edge edge) {
+  public GraphvizPresenter(boolean skipMethods) {
+		this.skipMethods = skipMethods;
+  }
+
+private Object getEdgeDescription(Edge edge) {
     StringBuilder sb = new StringBuilder();
     sb.append(" ").append(linkDirection(edge));
     return sb.toString();
@@ -79,7 +87,11 @@ public class GraphvizPresenter implements Presenter {
 
   private String describeDomainObjectMethods(DomainClass domainObject) {
     StringBuilder sb = new StringBuilder();
-    domainObject.getMethods().stream().forEach((m) -> sb.append("+ " + m + "\\l"));
+    
+    if (!skipMethods) {
+      domainObject.getMethods().stream().forEach((m) -> sb.append("+ " + m + "\\l"));
+    }
+    
     return sb.toString();
   }
 

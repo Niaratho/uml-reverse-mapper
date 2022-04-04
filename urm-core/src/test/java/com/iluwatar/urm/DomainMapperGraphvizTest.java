@@ -4,6 +4,13 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertThat;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import com.iluwatar.urm.presenters.GraphvizPresenter;
 import com.iluwatar.urm.presenters.Presenter;
 import com.iluwatar.urm.testdomain.Selfie;
@@ -13,11 +20,6 @@ import com.iluwatar.urm.testdomain.person.DoubleReferer;
 import com.iluwatar.urm.testdomain.person.Employee;
 import com.iluwatar.urm.testdomain.person.Manager;
 import com.iluwatar.urm.testdomain.person.Person;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
 
 
 /**
@@ -27,7 +29,7 @@ public class DomainMapperGraphvizTest {
 
   public static final String GRAPHVIZ_START = GraphvizPresenter.DOMAIN_DECLARATION
       + GraphvizPresenter.DEFAULTS + "\n  subgraph cluster_0";
-  private Presenter presenter = new GraphvizPresenter();
+  private Presenter presenter = new GraphvizPresenter(false);
   private DomainMapper domainMapper;
 
   @Before

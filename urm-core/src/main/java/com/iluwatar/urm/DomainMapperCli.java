@@ -39,6 +39,7 @@ public class DomainMapperCli {
     // create the Options
     Options options = new Options();
     options.addOption("f", "file", true, "write to file");
+    options.addOption("m", "methods", false, "presenter should skip methods");
     options.addOption("p", "package", true, "comma separated list of domain packages");
     options.addOption(OptionBuilder.withArgName("package").hasArgs().isRequired().create('p'));
     options.addOption("i", "ignore", true, "comma separated list of ignored types");
@@ -64,7 +65,7 @@ public class DomainMapperCli {
         }
       }
 
-      Presenter presenter = Presenter.parse(line.getOptionValue("s"));
+      Presenter presenter = Presenter.parse(line.getOptionValue("s"), line.hasOption("m"));
       domainMapper = DomainMapper.create(presenter, Arrays.asList(packages),
           ignores == null ? new ArrayList<>() : Arrays.asList(ignores));
       Representation representation = domainMapper.describeDomain();

@@ -20,7 +20,10 @@ public class HierarchyScanner extends AbstractScanner {
   public List<Edge> getEdges() {
     List<Edge> edges = new ArrayList<>();
     for (Class<?> clazz : classes) {
-      // show implemented interfaces
+
+      if (isStaticBuilderDomainClass(clazz)) {
+    	  continue;
+      }
       Class<?>[] interfaces = clazz.getInterfaces();
       for (Class<?> interfaze : interfaces) {
         if (isDomainClass(interfaze)) {
@@ -37,6 +40,7 @@ public class HierarchyScanner extends AbstractScanner {
         edges.add(new Edge(child, parent, EdgeType.EXTENDS));
       }
     }
+    
     return edges;
   }
 }
