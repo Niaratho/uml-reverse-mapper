@@ -2,6 +2,7 @@ package com.iluwatar.urm.scanners;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static org.reflections.scanners.Scanners.SubTypes;
 
 import com.iluwatar.urm.DomainClassFinder;
 import com.iluwatar.urm.domain.Edge;
@@ -16,11 +17,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 import org.reflections.ReflectionUtils;
+import org.reflections.Reflections;
+import org.reflections.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +36,11 @@ public class FieldScanner extends AbstractScanner {
 
   private final Logger logger = LoggerFactory.getLogger(FieldScanner.class);
 
-  public FieldScanner(final List<Class<?>> classes) {
+  private Reflections reflections;
+
+  public FieldScanner(final List<Class<?>> classes, Reflections reflections) {
     super(classes);
+    this.reflections=reflections;
   }
 
   /**
@@ -90,10 +97,13 @@ public class FieldScanner extends AbstractScanner {
             // (latter needed because of java.util.MethodHandles)
             return;
           }
-          Class<?> outerClass = ReflectionUtils.forName(outerName.replaceAll("/", "."),
-              DomainClassFinder.classLoaders);
-          Class<?> innerClass = ReflectionUtils.forName(name.replaceAll("/", "."),
-              DomainClassFinder.classLoaders);
+          Set<Class<?>> outerClassSet = reflections.get(SubTypes.of(outerName).asClass());
+          Set<Class<?>> innerClassSet = reflections.get(SubTypes.of(name).asClass());
+          if (outerClassSet.size()>1||innerClassSet.size()>1){
+            throw new RuntimeException();
+          }
+          Class<?> outerClass=outerClassSet.stream().findFirst().get();
+          Class<?> innerClass=innerClassSet.stream().findFirst().get();
           if (innerClass.equals(outerClass) || clazz.equals(outerClass)) {
             // To ensure we only add one Relation for each couple,
             // the outerClass relations are thrown aboard
@@ -102,8 +112,12 @@ public class FieldScanner extends AbstractScanner {
 
           Edge innerClassEdge;
           if ((innerClass.getModifiers() & Modifier.STATIC) > 0) {
-            innerClassEdge = EdgeOperations.createEdge(innerClass, outerClass,
-                EdgeType.STATIC_INNER_CLASS, NAME_FOR_INNERCLASS);
+            if (innerClass.getSimpleName().endsWith("Builder")) {
+              innerClassEdge=null;
+            }else{
+              innerClassEdge = EdgeOperations.createEdge(innerClass, outerClass,
+                  EdgeType.STATIC_INNER_CLASS, NAME_FOR_INNERCLASS);
+            }
           } else {
             innerClassEdge = EdgeOperations.createEdge(innerClass, outerClass,
                 EdgeType.INNER_CLASS, NAME_FOR_INNERCLASS);

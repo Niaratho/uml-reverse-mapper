@@ -28,6 +28,12 @@ public class DomainClassFinder {
 
   public static ClassLoader[] classLoaders;
 
+  private Reflections reflections;
+
+  public DomainClassFinder(Reflections reflections) {
+    this.reflections = reflections;
+  }
+
   /**
    * method to find and filter classes using reflections.
    * @param packages list of packages
@@ -35,22 +41,14 @@ public class DomainClassFinder {
    * @param classLoader URL classloader object
    * @return list of classes
    */
-  public static List<Class<?>> findClasses(final List<String> packages, List<String> ignores,
+  public List<Class<?>> findClasses(final List<String> packages, List<String> ignores,
                                            final URLClassLoader classLoader) {
-    switch ("myTest") {
-      default:
-        break;
-      case "ra": {
-      }
-
-    }
-
     System.out.println("packages = " + packages);
     System.out.println("ignores = " + ignores);
     System.out.println("classLoader = " + Arrays.toString(classLoader.getDefinedPackages()));
     List<Class<?>> classList = packages.stream()
-        .map(packageName -> getClasses(classLoader, packageName))
-        .flatMap(Collection::stream).peek(System.out::println)
+        .map(packageName -> getClasses(packageName))
+        .flatMap(Collection::stream)
         .filter(DomainClassFinder::isNotPackageInfo)
         .filter(DomainClassFinder::isNotAnonymousClass)
         .filter((Class<?> clazz) -> ignores.stream()
@@ -70,55 +68,22 @@ public class DomainClassFinder {
     return !clazz.getSimpleName().equals("");
   }
 
-  private static Set<Class<?>> getClasses(URLClassLoader classLoader, String packageName) {
-    List<ClassLoader> classLoadersList = new LinkedList<>();
-    classLoadersList.add(ClasspathHelper.contextClassLoader());
-    classLoadersList.add(ClasspathHelper.staticClassLoader());
-    if (classLoader != null) {
-      classLoadersList.add(classLoader);
-    }
-    classLoaders = classLoadersList.toArray(new ClassLoader[0]);
-    FilterBuilder filter = new FilterBuilder().include(FilterBuilder.prefix(packageName));
+  private Set<Class<?>> getClasses(String packageName) {
+    FilterBuilder filter = new FilterBuilder().includePackage(packageName);
     if (!isAllowFindingInternalClasses()) {
-      filter.exclude(FilterBuilder.prefix(URM_PACKAGE));
+      filter.excludePackage(URM_PACKAGE);
     }
-    Reflections reflections = new Reflections(new ConfigurationBuilder()
-        .setScanners(new SubTypesScanner(false), new ResourcesScanner())
-        .setUrls(ClasspathHelper.forClassLoader(classLoaders))
-        .filterInputsBy(filter)
-        .addClassLoaders(classLoadersList));
-    
+
+
     SetView<Class<?>> classes = Sets.union(reflections.getSubTypesOf(Object.class),
-        reflections.getSubTypesOf(Enum.class));	
-
-    List<String> listOfBuilders=classes.stream()
-        .filter(c-> c.getSimpleName().endsWith("Builder"))
-        .map(Class::getSimpleName)
-        .collect(Collectors.toList());
-    classes=  Sets.union(Sets.filter(classes,c->!listOfBuilders.contains(String.format("%sBuilder", c.getSimpleName()))),Sets.filter(classes,c->false));
-
+        reflections.getSubTypesOf(Enum.class));
 
     classes.forEach(System.out::println);
     return classes;
-    //neu auskommentiert
-    /*FilterBuilder filter = new FilterBuilder().include(FilterBuilder.prefix(packageName));
-    if (!isAllowFindingInternalClasses()) {
-      filter.exclude(FilterBuilder.prefix(URM_PACKAGE));
-    }
-    Reflections reflections = new Reflections(new ConfigurationBuilder()
-        .setScanners(new SubTypesScanner(false), new ResourcesScanner())
-        .setUrls(ClasspathHelper.forPackage(packageName, classLoaders))
-        .filterInputsBy(filter));
-    return Sets.union(reflections.getSubTypesOf(Object.class),
-        reflections.getSubTypesOf(Enum.class));*/
   }
 
-  public static boolean isAllowFindingInternalClasses() {
+  public boolean isAllowFindingInternalClasses() {
     return ALLOW_FINDING_INTERNAL_CLASSES |= Boolean.parseBoolean(
         System.getProperty("DomainClassFinder.allowFindingInternalClasses", "false"));
-  }
-
-  private DomainClassFinder() {
-    // private constructor for utility class
   }
 }

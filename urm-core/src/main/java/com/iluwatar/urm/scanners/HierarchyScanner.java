@@ -6,11 +6,15 @@ import com.iluwatar.urm.domain.EdgeType;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.reflections.Reflections;
 
 public class HierarchyScanner extends AbstractScanner {
 
-  public HierarchyScanner(List<Class<?>> classes) {
+  private Reflections reflections;
+
+  public HierarchyScanner(List<Class<?>> classes,Reflections reflections) {
     super(classes);
+    this.reflections=reflections;
   }
 
   /**

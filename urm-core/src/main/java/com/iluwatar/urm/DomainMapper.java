@@ -8,8 +8,14 @@ import com.iluwatar.urm.scanners.FieldScanner;
 import com.iluwatar.urm.scanners.HierarchyScanner;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.reflections.Reflections;
+import org.reflections.scanners.ResourcesScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,18 +24,15 @@ public class DomainMapper {
   private static final Logger log = LoggerFactory.getLogger(DomainMapper.class);
   private final FieldScanner fieldScanner;
   private final HierarchyScanner hierarchyScanner;
-  private final List<Class<?>> classes;
+  private List<Class<?>> classes;
   private final Presenter presenter;
+  public ClassLoader[] classLoaders;
 
-  DomainMapper(Presenter presenter, final List<Class<?>> classes) {
-    this.presenter = presenter;
-    this.classes = classes;
-    fieldScanner = new FieldScanner(classes);
-    hierarchyScanner = new HierarchyScanner(classes);
-  }
+
 
   /**
    * method to get representation.
+   *
    * @return Representation type
    * @throws ClassNotFoundException exception
    */
@@ -37,30 +40,79 @@ public class DomainMapper {
     List<Edge> edges = new ArrayList<>();
     edges.addAll(fieldScanner.getEdges());
     edges.addAll(hierarchyScanner.getEdges());
+    edges=mergeBuilderAndClass(edges);
     List<DomainClass> domainObjects = classes.stream().map(DomainClass::new)
         .collect(Collectors.toList());
     return presenter.describe(domainObjects, edges);
   }
 
-  public List<Class<?>> getClasses() {
-    return classes;
+  private List<Edge> mergeBuilderAndClass(List<Edge> edges) {
+    List<Class<?>> listOfBuilders = classes.stream()
+        .filter(c -> c.getSimpleName().endsWith("Builder"))
+        .collect(Collectors.toList());
+
+    List<Edge> newEdges= new ArrayList<>();
+
+    for (Class<?> builder : listOfBuilders) {
+      Class<?> clazz = findClass(builder);
+      if (clazz != null) {
+        newEdges.clear();
+        for (Edge e :edges){
+
+          boolean sourcebuilder=e.source.getClassName().equals(builder.getSimpleName());
+          boolean targetbuilder=e.target.getClassName().equals(builder.getSimpleName());
+          boolean sourcenormal=e.source.getClassName().equals(clazz.getSimpleName());
+          boolean targetnormal=e.target.getClassName().equals(clazz.getSimpleName());
+          if ((sourcebuilder && targetnormal )||(targetbuilder && sourcenormal)){
+            continue;
+          }else if (sourcebuilder){
+            newEdges.add(new Edge(new DomainClass(clazz,e.source.getDescription()),e.target,e.type,e.direction));
+          }else if( targetbuilder){
+            newEdges.add(new Edge(e.source,new DomainClass(clazz,e.source.getDescription()),e.type,e.direction));
+          }else{
+            newEdges.add(e);
+          }
+        }
+        classes.remove(builder);
+        edges= newEdges.stream().collect(Collectors.toList());
+      }
+    }
+    return edges;
   }
 
-  public static DomainMapper create(Presenter presenter, List<String> packages,
-                                    List<String> ignores, URLClassLoader classLoader)
+
+
+  private Class<?> findClass(Class<?> builder) {
+    for (Class<?> clazz : classes) {
+      if (String.format("%sBuilder", clazz.getSimpleName()).equals(builder.getSimpleName())) {
+        return clazz;
+      }
+    }
+    return null;
+  }
+
+
+  public DomainMapper(Presenter presenter, List<String> packages,
+      List<String> ignores, URLClassLoader classLoader)
       throws ClassNotFoundException {
-    List<Class<?>> allClasses = DomainClassFinder.findClasses(packages, ignores, classLoader);
-    allClasses.forEach(System.out::println);
-    return new DomainMapper(presenter, allClasses);
-  }
+    this.presenter = presenter;
+    List<ClassLoader> classLoadersList = new LinkedList<>();
+    classLoadersList.add(ClasspathHelper.contextClassLoader());
+    classLoadersList.add(ClasspathHelper.staticClassLoader());
+    if (classLoader != null) {
+      classLoadersList.add(classLoader);
+    }
+    classLoaders = classLoadersList.toArray(new ClassLoader[0]);
 
-  public static DomainMapper create(Presenter presenter, final List<String> packages,
-                                    List<String> ignores) throws ClassNotFoundException {
-    return create(presenter, packages, ignores, null);
-  }
+    Reflections reflections = new Reflections(new ConfigurationBuilder()
+        .setScanners(new SubTypesScanner(false), new ResourcesScanner())
+        .setUrls(ClasspathHelper.forClassLoader(classLoaders))
+        .addClassLoaders(classLoaders));
+    DomainClassFinder domainClassFinder= new DomainClassFinder(reflections);
+    classes = domainClassFinder.findClasses(packages, ignores, classLoader);
 
-  public static DomainMapper create(Presenter presenter, final List<String> packages)
-      throws ClassNotFoundException {
-    return create(presenter, packages, new ArrayList<>(), null);
+    this.fieldScanner= new FieldScanner(classes,reflections);
+    this.hierarchyScanner=new HierarchyScanner(classes,reflections);
+
   }
 }
