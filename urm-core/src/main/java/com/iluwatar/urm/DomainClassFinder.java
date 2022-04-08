@@ -1,5 +1,7 @@
 package com.iluwatar.urm;
 
+import static org.reflections.scanners.Scanners.SubTypes;
+
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.net.URLClassLoader;
@@ -46,9 +48,7 @@ public class DomainClassFinder {
     System.out.println("packages = " + packages);
     System.out.println("ignores = " + ignores);
     System.out.println("classLoader = " + Arrays.toString(classLoader.getDefinedPackages()));
-    List<Class<?>> classList = packages.stream()
-        .map(packageName -> getClasses(packageName))
-        .flatMap(Collection::stream)
+    List<Class<?>> classList = getClasses().stream()
         .filter(DomainClassFinder::isNotPackageInfo)
         .filter(DomainClassFinder::isNotAnonymousClass)
         .filter((Class<?> clazz) -> ignores.stream()
@@ -68,13 +68,7 @@ public class DomainClassFinder {
     return !clazz.getSimpleName().equals("");
   }
 
-  private Set<Class<?>> getClasses(String packageName) {
-    FilterBuilder filter = new FilterBuilder().includePackage(packageName);
-    if (!isAllowFindingInternalClasses()) {
-      filter.excludePackage(URM_PACKAGE);
-    }
-
-
+  private Set<Class<?>> getClasses() {
     SetView<Class<?>> classes = Sets.union(reflections.getSubTypesOf(Object.class),
         reflections.getSubTypesOf(Enum.class));
 

@@ -97,12 +97,11 @@ public class FieldScanner extends AbstractScanner {
             // (latter needed because of java.util.MethodHandles)
             return;
           }
-          Set<Class<?>> outerClassSet = reflections.get(SubTypes.of(outerName).asClass());
+          Class<?> outerClass = reflections.forClass(outerName,reflections.getConfiguration().getClassLoaders());
           Set<Class<?>> innerClassSet = reflections.get(SubTypes.of(name).asClass());
-          if (outerClassSet.size()>1||innerClassSet.size()>1){
+          if (innerClassSet.size()!=1){
             throw new RuntimeException();
           }
-          Class<?> outerClass=outerClassSet.stream().findFirst().get();
           Class<?> innerClass=innerClassSet.stream().findFirst().get();
           if (innerClass.equals(outerClass) || clazz.equals(outerClass)) {
             // To ensure we only add one Relation for each couple,

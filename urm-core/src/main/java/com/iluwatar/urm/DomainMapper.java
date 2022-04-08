@@ -16,17 +16,18 @@ import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DomainMapper {
 
-  private static final Logger log = LoggerFactory.getLogger(DomainMapper.class);
   private final FieldScanner fieldScanner;
   private final HierarchyScanner hierarchyScanner;
   private List<Class<?>> classes;
   private final Presenter presenter;
   public ClassLoader[] classLoaders;
+  public static Reflections reflections;
 
 
 
@@ -104,10 +105,19 @@ public class DomainMapper {
     }
     classLoaders = classLoadersList.toArray(new ClassLoader[0]);
 
-    Reflections reflections = new Reflections(new ConfigurationBuilder()
-        .setScanners(new SubTypesScanner(false), new ResourcesScanner())
+    FilterBuilder filter = new FilterBuilder();
+    for (String p : packages){
+      filter.includePackage(p);
+    }
+//  if (!isAllowFindingInternalClasses()) {
+//      filter.excludePackage(URM_PACKAGE);
+//    }
+
+    reflections = new Reflections(new ConfigurationBuilder()
+        .forPackages(packages.toArray(new String[packages.size()]))
         .setUrls(ClasspathHelper.forClassLoader(classLoaders))
-        .addClassLoaders(classLoaders));
+        .setScanners(new SubTypesScanner(false), new ResourcesScanner())
+        .addClassLoaders(classLoaders).filterInputsBy(filter));
     DomainClassFinder domainClassFinder= new DomainClassFinder(reflections);
     classes = domainClassFinder.findClasses(packages, ignores, classLoader);
 
