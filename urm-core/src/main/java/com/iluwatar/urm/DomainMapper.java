@@ -8,8 +8,10 @@ import com.iluwatar.urm.scanners.FieldScanner;
 import com.iluwatar.urm.scanners.HierarchyScanner;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
@@ -28,8 +30,6 @@ public class DomainMapper {
   private final Presenter presenter;
   public ClassLoader[] classLoaders;
   public static Reflections reflections;
-
-
 
   /**
    * method to get representation.
@@ -52,14 +52,13 @@ public class DomainMapper {
         .filter(c -> c.getSimpleName().endsWith("Builder"))
         .collect(Collectors.toList());
 
-    List<Edge> newEdges= new ArrayList<>();
+    Set<Edge> newEdges= new HashSet<>();
 
     for (Class<?> builder : listOfBuilders) {
       Class<?> clazz = findClass(builder);
       if (clazz != null) {
         newEdges.clear();
         for (Edge e :edges){
-
           boolean sourcebuilder=e.source.getClassName().equals(builder.getSimpleName());
           boolean targetbuilder=e.target.getClassName().equals(builder.getSimpleName());
           boolean sourcenormal=e.source.getClassName().equals(clazz.getSimpleName());

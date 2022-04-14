@@ -29,7 +29,7 @@ public class DomainMapperGraphvizTest {
 
   public static final String GRAPHVIZ_START = GraphvizPresenter.DOMAIN_DECLARATION
       + GraphvizPresenter.DEFAULTS + "\n  subgraph cluster_0";
-  private Presenter presenter = new GraphvizPresenter(false);
+  private Presenter presenter = new GraphvizPresenter(false, false);
   private DomainMapper domainMapper;
 
   @Before

@@ -39,6 +39,8 @@ public class DomainMapperMojo extends AbstractMojo {
   private List<String> packages;
   @Parameter(property = "map.ignores", required = false)
   private List<String> ignores;
+  @Parameter(property = "map.allowedAnnotations", required = false)
+  private List<String> allowedAnnotations;
   @Parameter(property = "presenter", required = false)
   private String presenter;
   @Parameter(property = "map.skipForProjects", required = false)
@@ -49,6 +51,8 @@ public class DomainMapperMojo extends AbstractMojo {
   private boolean includeTestDirectory;
   @Parameter(property = "skipMethods", defaultValue = "true")
   private boolean skipMethods;
+  @Parameter(property = "skipContructors", defaultValue = "true")
+  private boolean skipConstructors;
   
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
@@ -65,7 +69,7 @@ public class DomainMapperMojo extends AbstractMojo {
       throw new MojoFailureException("No packages defined for scanning.");
     }
     try {
-      Presenter selectedPresenter = Presenter.parse(this.presenter, this.skipMethods);
+      Presenter selectedPresenter = Presenter.parse(this.presenter, this.skipMethods, this.skipConstructors, this.allowedAnnotations );
 
       String fileName = project.getName() + ".urm." + selectedPresenter.getFileEnding();
       Path path = Paths.get(outputDirectory.getPath(), fileName);

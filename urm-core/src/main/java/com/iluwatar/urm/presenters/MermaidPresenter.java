@@ -16,10 +16,14 @@ import java.util.stream.Collectors;
 public class MermaidPresenter implements Presenter {
   public static final String FILE_PREAMBLE = "classDiagram";
 
+  private boolean skipConstructors = false;
   private boolean skipMethods = false;
+  private final List<String> allowedAnnotations;
 
-  public MermaidPresenter(boolean skipMethods) {
-	this.skipMethods = skipMethods;
+  public MermaidPresenter(boolean skipMethods, boolean skipConstructors, List<String> allowedAnnotations) {
+	  this.skipMethods = skipMethods;
+    this.skipConstructors = skipConstructors;
+    this.allowedAnnotations = allowedAnnotations;
   }
  
   
@@ -72,9 +76,9 @@ public class MermaidPresenter implements Presenter {
   }
 
   private String describeDomainClassFields(DomainClass domainClass) {
-    String description = domainClass.getFields().stream()
+    String description = domainClass.getFields(this.allowedAnnotations).stream()
         .map(f -> f.getVisibility() + " "
-            + f.getUmlName()
+            + f.getUmlName(this.allowedAnnotations)
            + (f.isStatic() ? "$  " : "")
             + (f.isAbstract() ? "* " : ""))
         .collect(Collectors.joining("\n    "));
@@ -82,9 +86,12 @@ public class MermaidPresenter implements Presenter {
   }
 
   private String describeDomainClassConstructors(DomainClass domainClass) {
-    String description = domainClass.getConstructors().stream()
-        .map(c -> c.getVisibility() + " " + c.getUmlName())
-        .collect(Collectors.joining("\n    "));
+    String description = "";
+    if (!skipConstructors) {
+      description = domainClass.getConstructors().stream()
+          .map(c -> c.getVisibility() + " " + c.getUmlName())
+          .collect(Collectors.joining("\n    "));
+    }
     return !description.equals("") ? "\n    " + description : "";
   }
 

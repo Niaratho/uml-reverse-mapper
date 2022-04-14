@@ -19,11 +19,13 @@ public class GraphvizPresenter implements Presenter {
   public static final String DEFAULTS = "  edge [ fontsize = 11 ];\n  node [ shape=record ];";
   private static final String INHERITANCE_STYLE = "arrowhead=empty color=slategray";
   private final AtomicInteger count = new AtomicInteger();
-  
+
+  private boolean skipConstructors;
   private boolean skipMethods = false;
 
-  public GraphvizPresenter(boolean skipMethods) {
+  public GraphvizPresenter(boolean skipMethods, boolean skipConstructors) {
 		this.skipMethods = skipMethods;
+    this.skipConstructors = skipConstructors;
   }
 
 private Object getEdgeDescription(Edge edge) {

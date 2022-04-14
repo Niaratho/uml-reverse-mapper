@@ -14,10 +14,14 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import javax.persistence.Embeddable;
+import javax.persistence.Embedded;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -66,7 +70,19 @@ public class FieldScanner extends AbstractScanner {
         public FieldVisitor visitField(int access, String name,
                                        String desc, String signature, Object value) {
           try {
-            Optional<Edge> fieldEdge = createFieldEdge(clazz, clazz.getDeclaredField(name));
+
+            Field field = clazz.getDeclaredField(name);
+
+            if (isAnnotationPresent(field, Embedded.class)) {
+              System.out.println(String.format("<<embedded>> %s", name));
+            }
+
+            if (isAnnotationPresent(field, Embeddable.class)) {
+              System.out.println(String.format("<<embeddable>> %s", name));
+            }
+
+
+            Optional<Edge> fieldEdge = createFieldEdge(clazz, field);
             if (fieldEdge.isPresent()) {
               if (EdgeOperations.relationAlreadyExists(fieldEdges, fieldEdge.get())) {
                 Optional<Edge> relation = EdgeOperations.getMatchingRelation(
@@ -100,7 +116,7 @@ public class FieldScanner extends AbstractScanner {
 
 
           Class<?> outerClass = reflections.forClass(outerName.replace("/","."),reflections.getConfiguration().getClassLoaders());
-          Class<?> innerClass = reflections.forClass(innerName,reflections.getConfiguration().getClassLoaders());
+          Class<?> innerClass = reflections.forClass(name.replace("/","."),reflections.getConfiguration().getClassLoaders());
 
 
           if (innerClass.equals(outerClass) || clazz.equals(outerClass)) {
@@ -141,6 +157,7 @@ public class FieldScanner extends AbstractScanner {
     if (field.isEnumConstant()) {
       return empty(); // to prevent self-referencing we ignore all enum constants
     }
+
     if (isDomainClass(field.getType())) {
       if (!innerClassFieldReferenceInBytecode.equals(field.getName())) {
         //return of(EdgeOperations.createEdge(clazz, (Class) field.getType(),
@@ -175,5 +192,10 @@ public class FieldScanner extends AbstractScanner {
 
   private boolean isCollection(final Field field) {
     return Collection.class.isAssignableFrom(field.getType());
+  }
+
+  private boolean isAnnotationPresent (Field field, Class<?> annotation) {
+    return Arrays.stream(field.getAnnotations()).filter(a -> a.annotationType().getSimpleName().equals(annotation.getSimpleName())).collect(
+        Collectors.toList()).size() == 1;
   }
 }

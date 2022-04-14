@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
 import com.iluwatar.urm.testdomain.weirdos.Colors;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.hamcrest.Description;
@@ -35,8 +36,8 @@ public class DomainObjectTest {
   @Test
   public void domainConstructedProperlyWithEnum() {
     DomainClass viaClassConstructor = new DomainClass(Colors.class);
-    List<String> fieldNames = viaClassConstructor.getFields().stream()
-        .map(DomainField::getUmlName)
+    List<String> fieldNames = viaClassConstructor.getFields(new ArrayList<>()).stream()
+        .map(df -> df.getUmlName(new ArrayList<>()))
         .collect(Collectors.toList());
     assertThat(fieldNames, containsInAnyOrder("RED",
         "BARON_RED", "BLOOD_RED", "DARK_RED", "SLIGHTLY_DARKER_RED",

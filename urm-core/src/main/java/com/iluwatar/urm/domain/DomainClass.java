@@ -1,11 +1,14 @@
 package com.iluwatar.urm.domain;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Collectors;
+import javax.persistence.Embeddable;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
@@ -25,12 +28,14 @@ public class DomainClass {
   private Class<?> clazz;
   private String description;
   private transient List<DomainField> fieldList;
+  private transient List<Annotation> classAnnotations;
   private transient List<DomainConstructor> constructorList;
   private transient List<DomainMethod> methodList;
 
   public DomainClass(Class<?> clazz, String description) {
     this.clazz = clazz;
     this.description = description;
+    this.classAnnotations = getClassAnnotation(clazz);
   }
 
   public DomainClass(Class<?> clazz) {
@@ -45,8 +50,16 @@ public class DomainClass {
     return clazz.getPackage().getName();
   }
 
-  public String getUmlName() {
-    return TypeUtils.getSimpleName(clazz);
+  public String getUmlName(List<String> allowedAnnotations) {
+
+    List<Annotation> annotations = allowedAnnotations.isEmpty() ? classAnnotations : classAnnotations.stream().filter(ca -> allowedAnnotations.contains(ca.annotationType().getSimpleName()) ||  allowedAnnotations.contains(ca.annotationType().getName())).collect(
+        Collectors.toList());
+
+    StringBuffer umlName = new StringBuffer(TypeUtils.getSimpleName(clazz));
+
+    umlName.append(annotations.stream().map(ca -> String.format(" << %s >>", ca.annotationType().getSimpleName())).collect(Collectors.joining(",")));
+
+    return umlName.toString();
   }
 
   public String getClassName() {
@@ -61,14 +74,14 @@ public class DomainClass {
    * method to get declared fields of the class.
    * @return
    */
-  public List<DomainField> getFields() {
+  public List<DomainField> getFields(List<String> allowedAnnotations) {
     if (fieldList == null) {
       fieldList = Arrays.stream(clazz.getDeclaredFields())
           .filter(f -> !(f.getDeclaringClass().isEnum() && f.getName().equals("$VALUES")))
           .filter(f -> !f.isSynthetic())
           .filter(f -> !IGNORED_FIELDS.contains(f.getName()))
           .map(DomainField::new)
-          .sorted(Comparator.comparing(DomainField::getUmlName))
+          .sorted(Comparator.comparing(df -> df.getUmlName(allowedAnnotations)))
           .collect(Collectors.toList());
     }
     return fieldList;
@@ -129,6 +142,10 @@ public class DomainClass {
     return TypeUtils.getVisibility(clazz.getModifiers());
   }
 
+  public boolean isEmbeddable () {
+    return isClassAnnotationPresent(Embeddable.class);
+  }
+
   /**
    * method to get classtype of the class.
    * @return
@@ -143,10 +160,20 @@ public class DomainClass {
     } else {
       return DomainClassType.CLASS;
     }
+
+
   }
 
   public boolean isAbstract() {
     return Modifier.isAbstract(clazz.getModifiers());
   }
 
+  private List<Annotation> getClassAnnotation (Class<?> clazz) {
+    return List.of(clazz.getAnnotations());
+  }
+
+  private boolean isClassAnnotationPresent(Class<?> annotation) {
+    return Arrays.stream(clazz.getAnnotations()).filter(a -> a.annotationType().getSimpleName().equals(annotation.getSimpleName())).collect(
+        Collectors.toList()).size() == 1;
+  }
 }
