@@ -31,7 +31,7 @@ public class PlantUmlPresenter implements Presenter {
   private boolean skipConstructors = false;
   public PlantUmlPresenter(boolean skipMethods, boolean skipConstructors, List<String> allowedAnnotations, String plantUmlLineType) {
 	  this.skipMethods = skipMethods;
-    this.skipConstructors = skipMethods;
+    this.skipConstructors = skipConstructors;
     this.allowedAnnotations = allowedAnnotations;
     this.plantUmlLineType = plantUmlLineType;
   }
