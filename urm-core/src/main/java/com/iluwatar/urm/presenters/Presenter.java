@@ -18,15 +18,15 @@ public interface Presenter {
    * 
    * @return chosen Presenter
    */
-  static Presenter parse(String presenterString, boolean skipMethods, boolean skipConstructors, List<String> allowedAnnotations) {
+  static Presenter parse(String presenterString, boolean skipMethods, boolean skipConstructors, List<String> allowedAnnotations, String plantUmlLineType) {
     if (presenterString == null || presenterString.equalsIgnoreCase("plantuml")) {
-      return new PlantUmlPresenter(skipMethods, skipConstructors, allowedAnnotations);
+      return new PlantUmlPresenter(skipMethods, skipConstructors, allowedAnnotations,plantUmlLineType);
     } else if (presenterString.equalsIgnoreCase("graphviz")) {
       return new GraphvizPresenter(skipMethods, skipConstructors);
     } else if (presenterString.equalsIgnoreCase("mermaid")) {
       return new MermaidPresenter(skipMethods, skipConstructors, allowedAnnotations);
     }
-    return new PlantUmlPresenter(skipMethods, skipConstructors, allowedAnnotations);
+    return new PlantUmlPresenter(skipMethods, skipConstructors, allowedAnnotations, plantUmlLineType);
   }
   
 }

@@ -43,6 +43,8 @@ public class DomainMapperMojo extends AbstractMojo {
   private List<String> allowedAnnotations;
   @Parameter(property = "presenter", required = false)
   private String presenter;
+  @Parameter(property = "plantUmlLineType", required = false)
+  private String plantUmlLineType;
   @Parameter(property = "map.skipForProjects", required = false)
   private List<String> skipForProjects;
   @Parameter(property = "includeMainDirectory", defaultValue = "true")
@@ -51,6 +53,8 @@ public class DomainMapperMojo extends AbstractMojo {
   private boolean includeTestDirectory;
   @Parameter(property = "skipMethods", defaultValue = "true")
   private boolean skipMethods;
+  @Parameter(property = "fileOverwrite", defaultValue = "true")
+  private boolean fileOverwrite;
   @Parameter(property = "skipContructors", defaultValue = "true")
   private boolean skipConstructors;
   
@@ -69,9 +73,9 @@ public class DomainMapperMojo extends AbstractMojo {
       throw new MojoFailureException("No packages defined for scanning.");
     }
     try {
-      Presenter selectedPresenter = Presenter.parse(this.presenter, this.skipMethods, this.skipConstructors, this.allowedAnnotations );
+      Presenter selectedPresenter = Presenter.parse(this.presenter, this.skipMethods, this.skipConstructors, this.allowedAnnotations, this.plantUmlLineType);
 
-      String fileName = project.getName() + ".urm." + selectedPresenter.getFileEnding();
+      String fileName = project.getArtifactId() + ".urm." + selectedPresenter.getFileEnding();
       Path path = Paths.get(outputDirectory.getPath(), fileName);
       Path dir = path.getParent();
       if (dir != null) {
@@ -79,7 +83,7 @@ public class DomainMapperMojo extends AbstractMojo {
       }
 
 
-      //if (!Files.exists(path) && fileOverwrite) {
+      if (fileOverwrite) {
         List<URL> projectClasspathList = getClasspathUrls();
         URL[] urls= projectClasspathList.toArray(new URL[projectClasspathList.size()]);
 
@@ -93,9 +97,9 @@ public class DomainMapperMojo extends AbstractMojo {
         getLog().info(fileName + " successfully written to: \""
             + path
             + "\"!");
-      //} else {
-      //  getLog().info(fileName + " already exists, file was not overwritten!");
-      //}
+      } else {
+        getLog().info(fileName + " already exists, file was not overwritten!");
+      }
     } catch (ClassNotFoundException | DependencyResolutionRequiredException | IOException e) {
       throw new MojoExecutionException(e.getMessage(), e);
     }

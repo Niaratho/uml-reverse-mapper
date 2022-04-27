@@ -11,11 +11,11 @@ public class PresenterTest {
 
   @Test
   public void parseShouldReturnCorrectPresenter() {
-    Presenter presenter = Presenter.parse("graphviz", false, false, new ArrayList<>());
+    Presenter presenter = Presenter.parse("graphviz", false, false, new ArrayList<>(), "");
     assertTrue(presenter.getClass().getSimpleName().equals("GraphvizPresenter"));
-    presenter = Presenter.parse("plantuml", false, false, new ArrayList<>());
+    presenter = Presenter.parse("plantuml", false, false, new ArrayList<>(), "");
     assertTrue(presenter.getClass().getSimpleName().equals("PlantUmlPresenter"));
-    presenter = Presenter.parse("mermaid", false, false, new ArrayList<>());
+    presenter = Presenter.parse("mermaid", false, false, new ArrayList<>(), "");
     assertTrue(presenter.getClass().getSimpleName().equals("MermaidPresenter"));
   }
 }

@@ -3,6 +3,7 @@ package com.iluwatar.urm.presenters;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 
+import com.iluwatar.urm.domain.Direction;
 import com.iluwatar.urm.domain.DomainClass;
 import com.iluwatar.urm.domain.DomainClassType;
 import com.iluwatar.urm.domain.Edge;
@@ -23,13 +24,16 @@ public class PlantUmlPresenter implements Presenter {
 
   public static final String FILE_PREAMBLE = "@startuml";
   public static final String FILE_POSTAMBLE = "@enduml";
+  public static final String LINE_TYPE = "skinparam linetype";
   private final List<String> allowedAnnotations;
+  private final String plantUmlLineType;
   private boolean skipMethods = false;
   private boolean skipConstructors = false;
-  public PlantUmlPresenter(boolean skipMethods, boolean skipConstructors, List<String> allowedAnnotations) {
+  public PlantUmlPresenter(boolean skipMethods, boolean skipConstructors, List<String> allowedAnnotations, String plantUmlLineType) {
 	  this.skipMethods = skipMethods;
     this.skipConstructors = skipMethods;
     this.allowedAnnotations = allowedAnnotations;
+    this.plantUmlLineType = plantUmlLineType;
   }
 
 private String describeInheritance(List<Edge> edges) {
@@ -177,6 +181,11 @@ private String describeInheritance(List<Edge> edges) {
       targetName = " \"-" + edge.source.getDescription() + "\" " + targetName;
     }
 
+    if (Direction.BI_DIRECTIONAL.equals(edge.direction)) {
+      sourceName = " \"-" + edge.target.getDescription() + "\" " + sourceName;
+      arrow = "<-->";
+    }
+
     return String.format("%s %s %s", sourceName, arrow, targetName)
         + (arrowDescription != null ? " : " + arrowDescription : "");
   }
@@ -184,6 +193,7 @@ private String describeInheritance(List<Edge> edges) {
   @Override
   public Representation describe(List<DomainClass> domainClasses, List<Edge> edges) {
     String content = FILE_PREAMBLE + "\n"
+        + LINE_TYPE + " " +  this.plantUmlLineType + "\n"
         + describePackages(domainClasses, this.allowedAnnotations)
         + describeCompositions(edges)
         + describeInheritance(edges)

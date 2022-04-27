@@ -1,5 +1,6 @@
 package com.iluwatar.urm;
 
+import com.iluwatar.urm.domain.Direction;
 import com.iluwatar.urm.domain.DomainClass;
 import com.iluwatar.urm.domain.Edge;
 import com.iluwatar.urm.presenters.Presenter;
@@ -13,14 +14,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DomainMapper {
 
@@ -41,50 +41,91 @@ public class DomainMapper {
     List<Edge> edges = new ArrayList<>();
     edges.addAll(fieldScanner.getEdges());
     edges.addAll(hierarchyScanner.getEdges());
-    edges=mergeBuilderAndClass(edges);
     List<DomainClass> domainObjects = classes.stream().map(DomainClass::new)
         .collect(Collectors.toList());
+    edges=mergeBuilderAndClass(edges, domainObjects);
     return presenter.describe(domainObjects, edges);
   }
 
-  private List<Edge> mergeBuilderAndClass(List<Edge> edges) {
-    List<Class<?>> listOfBuilders = classes.stream()
-        .filter(c -> c.getSimpleName().endsWith("Builder"))
+  // necessary for Lombok Builder Pattern
+  private List<Edge> mergeBuilderAndClass(List<Edge> edges, List<DomainClass> domainObjects) {
+    List<DomainClass> listOfBuilders = domainObjects.stream()
+        .filter(c -> c.getClassName().endsWith("Builder"))
         .collect(Collectors.toList());
 
     Set<Edge> newEdges= new HashSet<>();
 
-    for (Class<?> builder : listOfBuilders) {
-      Class<?> clazz = findClass(builder);
+    for (DomainClass builder : listOfBuilders) {
+      DomainClass clazz = findClass(builder, domainObjects);
       if (clazz != null) {
         newEdges.clear();
-        for (Edge e :edges){
-          boolean sourcebuilder=e.source.getClassName().equals(builder.getSimpleName());
-          boolean targetbuilder=e.target.getClassName().equals(builder.getSimpleName());
-          boolean sourcenormal=e.source.getClassName().equals(clazz.getSimpleName());
-          boolean targetnormal=e.target.getClassName().equals(clazz.getSimpleName());
-          if ((sourcebuilder && targetnormal )||(targetbuilder && sourcenormal)){
+        clazz.setBuilderFlag(true);
+        for (Edge e :edges) {
+          boolean sourcebuilder = e.source.getClassName().equals(builder.getClassName());
+          boolean targetbuilder = e.target.getClassName().equals(builder.getClassName());
+          boolean sourcenormal = e.source.getClassName().equals(clazz.getClassName());
+          boolean targetnormal = e.target.getClassName().equals(clazz.getClassName());
+          if ((sourcebuilder && targetnormal) || (targetbuilder && sourcenormal)) {
             continue;
-          }else if (sourcebuilder){
-            newEdges.add(new Edge(new DomainClass(clazz,e.source.getDescription()),e.target,e.type,e.direction));
-          }else if( targetbuilder){
-            newEdges.add(new Edge(e.source,new DomainClass(clazz,e.source.getDescription()),e.type,e.direction));
-          }else{
+          } else if (sourcebuilder) {
+            newEdges.add(new Edge(clazz, e.target, e.type, e.direction));
+          } else if (targetbuilder) {
+            newEdges.add(new Edge(e.source, clazz, e.type, e.direction));
+          } else{
             newEdges.add(e);
           }
         }
-        classes.remove(builder);
-        edges= newEdges.stream().collect(Collectors.toList());
+        domainObjects.remove(builder);
+        edges = newEdges.stream().collect(Collectors.toList());
       }
     }
-    return edges;
+
+    //filter if bi-directional and remove edge without decription
+
+    List<Edge> edgesNew = new ArrayList<>();
+
+    for (int i = 0; i < edges.size(); i++) {
+       Edge e = edges.get(i);
+       boolean keepEdge = false;
+       for (int j = i+1; j < edges.size(); j++) {
+         Edge compareEdge = edges.get(j);
+         String eSourceName = e.source.getClassName();
+         String cTargetName = compareEdge.target.getClassName();
+         String eTargetName = e.target.getClassName();
+         String cSourceName = compareEdge.source.getClassName();
+
+         if (eSourceName.equals(cSourceName) && eTargetName.equals(cTargetName)) {
+           Edge edge = null;
+           if (StringUtils.isNotEmpty(e.source.getDescription()) || StringUtils.isNotEmpty(e.target.getDescription())) {
+             edge = e;
+           } else {
+             edge = compareEdge;
+           }
+           //lambda defines this
+           Edge finalEdge = edge;
+           if (!edgesNew.stream().anyMatch(ed -> ed.source.getClassName().equals(finalEdge.source.getClassName())&& ed.target.getClassName().equals(
+               finalEdge.target.getClassName()))) {
+             edgesNew.add(edge);
+           }
+
+         } else if (eSourceName.equals(cTargetName) && cSourceName.equals(eTargetName)) {
+           edgesNew.add(new Edge(e.source, compareEdge.source, e.type, Direction.BI_DIRECTIONAL));
+         }
+      }
+      if (!edgesNew.stream().anyMatch(ed -> ed.source.getClassName().equals(e.source.getClassName())&& ed.target.getClassName().equals(
+          e.target.getClassName()))) {
+        edgesNew.add(e);
+      }
+    }
+    return edgesNew;
   }
 
 
 
-  private Class<?> findClass(Class<?> builder) {
-    for (Class<?> clazz : classes) {
-      if (String.format("%sBuilder", clazz.getSimpleName()).equals(builder.getSimpleName())) {
+
+  private DomainClass findClass(DomainClass builder, List<DomainClass> domainObjects) {
+    for (DomainClass clazz : domainObjects) {
+      if (String.format("%sBuilder", clazz.getClassName()).equals(builder.getClassName())) {
         return clazz;
       }
     }

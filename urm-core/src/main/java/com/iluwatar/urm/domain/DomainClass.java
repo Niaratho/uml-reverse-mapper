@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.stream.Collectors;
 import javax.persistence.Embeddable;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -31,11 +30,13 @@ public class DomainClass {
   private transient List<Annotation> classAnnotations;
   private transient List<DomainConstructor> constructorList;
   private transient List<DomainMethod> methodList;
+  private transient boolean hasBuilderFlag;
 
   public DomainClass(Class<?> clazz, String description) {
     this.clazz = clazz;
     this.description = description;
     this.classAnnotations = getClassAnnotation(clazz);
+    this.hasBuilderFlag = false;
   }
 
   public DomainClass(Class<?> clazz) {
@@ -58,6 +59,13 @@ public class DomainClass {
     StringBuffer umlName = new StringBuffer(TypeUtils.getSimpleName(clazz));
 
     umlName.append(annotations.stream().map(ca -> String.format(" << %s >>", ca.annotationType().getSimpleName())).collect(Collectors.joining(",")));
+
+    // necessary for Lombok Builder Pattern
+    if (this.hasBuilderFlag) {
+      if (allowedAnnotations.isEmpty() || allowedAnnotations.contains("Builder")) {
+        umlName.append("<< Builder >>");
+      }
+    }
 
     return umlName.toString();
   }
@@ -160,8 +168,10 @@ public class DomainClass {
     } else {
       return DomainClassType.CLASS;
     }
+  }
 
-
+  public void setBuilderFlag(boolean hasBuilderFlag) {
+    this.hasBuilderFlag = hasBuilderFlag;
   }
 
   public boolean isAbstract() {
